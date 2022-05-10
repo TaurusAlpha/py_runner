@@ -48,3 +48,12 @@ Thumbs.db
 *.mov
 *.wmv
 
+# VSCode
+.vscode/
+
+# vEnv
+venv/
+
+# Cache
+__pycache__/
+.mypy_cache/
