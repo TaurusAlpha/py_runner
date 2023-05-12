@@ -3,86 +3,102 @@ import pygame
 import os
 from dotenv import load_dotenv
 from os.path import join, dirname
-
+import time
 from player import Player
+import logging
+from debug import debug as dbg
 
 
-class Core:
+class Core():
     def __init__(self) -> None:
+        self.logger = logging.getLogger()
+        self.load_env()
+
         pygame.init()
         pygame.event.set_allowed([pygame.QUIT, pygame.KEYDOWN])
-        self.running = False
         self.clock = pygame.time.Clock()
+        self.screen = pygame.display.set_mode(eval(os.getenv('SCREEN_RES')), pygame.DOUBLEBUF | pygame.HWACCEL)
 
-
-    def init(self) -> None:
-        self.running = True
-        dotenv_path = join(dirname(__file__), 'config.env')
-        load_dotenv(dotenv_path)
-        self.bg = pygame.image.load(os.getenv('BG'), "Background")
-        self.display = pygame.display.set_mode((self.bg.get_width(), self.bg.get_height()), pygame.DOUBLEBUF | pygame.HWACCEL)
-        self.bg = self.bg.convert()
-        self.first_bg_pos = 0
-        self.second_bg_pos = self.bg.get_width()
+        self.bg = self.init_bg()
+        self.level_pos_start = 0
+        self.level_pos_end = self.screen.get_width()
+        
         self.fps = int(os.getenv('FPS'))
-        self.player = Player(self.load_player())    
-        self.player_group = pygame.sprite.GroupSingle(self.player)
-        self.ground = 266
-        self.jump_height = 366
+        self.speed = int(os.getenv('SPEED'))
+
+        self.player = pygame.sprite.GroupSingle()
+        self.player.add(Player(self.dotenv_path, self.speed))
+
+        self.running = True
+
+ 
+    def init_bg(self) -> pygame.surface.Surface:
+        if os.getenv('BG'):
+            bg = pygame.image.load(os.getenv('BG'), 'Background').convert_alpha()
+            bg = pygame.transform.scale(bg, (self.screen.get_width(), self.screen.get_height()))
+            return bg
+        else:
+            self.logger.error('BG variable not found in config.env')
+            self.cleanup()
+
+
+    def load_env(self):
+        self.dotenv_path = join(dirname(__file__), 'config.env')
+        if not load_dotenv(self.dotenv_path):
+            self.logger.error('config.env file not found')
+            self.cleanup()
 
 
     def event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.QUIT:
             self.running = False
+        if event.type == pygame.VIDEORESIZE:
+            self.screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+            self.bg = pygame.transform.scale(self.bg, (self.screen.get_width(), self.screen.get_height()))
         if event.type == pygame.KEYDOWN:
-            if event.type == pygame.K_SPACE:
-                self.player_jump()
+            if event.key == pygame.K_ESCAPE:
+                self.running = False
+            # if event.key == pygame.K_DOWN or event.key == pygame.K_SPACE:
+            #     self.player.jump()
 
 
     def update(self, delta_time) -> None:
-        self.move_bg()
-        self.player_group.update(delta_time)
+        pygame.display.update()
+        self.player.update(delta_time)
 
 
     def render(self) -> None:
-        self.display.blit(self.bg, (self.first_bg_pos,0))
-        self.display.blit(self.bg, (self.second_bg_pos,0))
-        self.player_group.draw(self.display)
-        pygame.display.update()
+        self.bg_scroll()
+        self.screen.blit(self.bg, (self.level_pos_start, 0))
+        self.screen.blit(self.bg, (self.level_pos_end, 0))
+        self.player.draw(self.screen)
 
     
+    def bg_scroll(self) -> None:
+        self.level_pos_start -= self.speed
+        self.level_pos_end -= self.speed
+        if self.level_pos_start <= -self.screen.get_width():
+            self.level_pos_start = self.screen.get_width()
+        if self.level_pos_end <= -self.screen.get_width():
+            self.level_pos_end = self.screen.get_width()
+        
+
     def cleanup(self) -> None:
+        self.running = False
         pygame.quit()
 
 
     def run(self) -> None:
-        self.init()
+        prev_time = time.time()
         while self.running:
-            delta_time = self.clock.tick(self.fps)
+            delta_time = (time.time() - prev_time)*100
+            prev_time = time.time()
             for event in pygame.event.get():
-                self.event(event)
-            self.update(delta_time)
+                self.event(event)            
             self.render()
-        self.cleanup()
-    
-
-    def move_bg(self) -> None:
-        self.first_bg_pos -= self.player.player_speed
-        self.second_bg_pos -= self.player.player_speed
-        if self.first_bg_pos < self.bg.get_width() * -1:
-            self.first_bg_pos = self.bg.get_width()
-        if self.second_bg_pos < self.bg.get_width() * -1:
-            self.second_bg_pos = self.bg.get_width()
-    
-
-    def load_player(self) -> List:
-        images = []
-        for i in reversed(range(1,10)):
-            image = pygame.image.load(os.getenv(f'PLAYER_SPRITE{i}'), f'Player{i}').convert()
-            image.set_colorkey('WHITE')
-            images.append(image)
-        return images
-
-
-    def player_jump(self) -> None:
-        self.player.rect.move_ip([50, 366])
+            dbg(round(self.clock.get_fps(),3))
+            dbg((self.level_pos_start, self.level_pos_end), y = 40)
+            dbg(delta_time, y=80)
+            self.update(delta_time)
+            self.clock.tick(self.fps)
+        self.cleanup() 
