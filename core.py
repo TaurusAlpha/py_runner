@@ -1,4 +1,3 @@
-from typing import List
 import pygame
 import os
 from dotenv import load_dotenv
@@ -25,9 +24,10 @@ class Core():
         
         self.fps = int(os.getenv('FPS'))
         self.speed = int(os.getenv('SPEED'))
+        self.ground = 600
 
-        self.player = pygame.sprite.GroupSingle()
-        self.player.add(Player(self.dotenv_path, self.speed))
+        self.player = Player(self.dotenv_path, self.speed, self.ground)
+        self.player_group = pygame.sprite.GroupSingle(self.player)
 
         self.running = True
 
@@ -58,20 +58,20 @@ class Core():
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.running = False
-            # if event.key == pygame.K_DOWN or event.key == pygame.K_SPACE:
-            #     self.player.jump()
+            if event.key == pygame.K_DOWN or event.key == pygame.K_SPACE:
+                self.player.jump()
 
 
     def update(self, delta_time) -> None:
         pygame.display.update()
-        self.player.update(delta_time)
+        self.player_group.update(delta_time)
 
 
     def render(self) -> None:
         self.bg_scroll()
         self.screen.blit(self.bg, (self.level_pos_start, 0))
         self.screen.blit(self.bg, (self.level_pos_end, 0))
-        self.player.draw(self.screen)
+        self.player_group.draw(self.screen)
 
     
     def bg_scroll(self) -> None:
@@ -96,9 +96,8 @@ class Core():
             for event in pygame.event.get():
                 self.event(event)            
             self.render()
-            dbg(round(self.clock.get_fps(),3))
-            dbg((self.level_pos_start, self.level_pos_end), y = 40)
-            dbg(delta_time, y=80)
+            dbg(self.player.gravity)
+            dbg((self.player.rect.bottom, self.player.rect.bottomright, self.ground), y=40)
             self.update(delta_time)
             self.clock.tick(self.fps)
         self.cleanup() 
