@@ -98,7 +98,7 @@ class Core():
         while self.running:
             delta_time = (time.time() - prev_time)*100
             prev_time = time.time()
-            if pygame.sprite.collide_rect_ratio(0.65)(self.player, self.level):
+            if pygame.sprite.collide_rect_ratio(0.7)(self.player, self.level):
                 self.logger.warning("Game Over")
                 self.running = False
             for event in pygame.event.get():
