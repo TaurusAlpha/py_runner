@@ -1,15 +1,15 @@
 from typing import List
 import pygame
-from dotenv import load_dotenv
 import os
 import logging
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, player_frames: str, speed: int, ground: int) -> None:
+    def __init__(self) -> None:
         super().__init__()
         self.logger = logging.getLogger()
-        load_dotenv(player_frames)
+        self.ground = int(os.getenv('GROUND'))
+        self.speed = int(os.getenv('SPEED'))
 
         self.frames = self.load_player()
         self.frame_index = 0
@@ -18,13 +18,11 @@ class Player(pygame.sprite.Sprite):
         self.jump_air = self.frames[len(self.frames)-1].convert_alpha()
         self.jump_down = pygame.transform.rotate(self.frames[len(self.frames)-1], -30.0).convert_alpha()
 
-        self.player_pos = pygame.Vector2(50, ground)
+        self.player_pos = pygame.Vector2(50, self.ground)
         self.rect = pygame.Surface.get_rect(self.image, bottomleft=self.player_pos)
         self.animation_time = 30
         self.current_time = 0
         self.running = True
-        self.speed = speed
-        self.ground = ground
         self.gravity = 0
         self.air_time = 0
 
@@ -71,6 +69,6 @@ class Player(pygame.sprite.Sprite):
 
 
     def jump(self):
-        self.gravity = -20
-        self.air_time = 20
+        self.gravity = -22
+        self.air_time = 30
         self.rect.bottom = self.ground-1

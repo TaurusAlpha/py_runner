@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from os.path import join, dirname
 import time
 from player import Player
+from level import Level
 import logging
 from debug import debug as dbg
 
@@ -24,10 +25,12 @@ class Core():
         
         self.fps = int(os.getenv('FPS'))
         self.speed = int(os.getenv('SPEED'))
-        self.ground = 600
+        self.ground = int(os.getenv('GROUND'))
 
-        self.player = Player(self.dotenv_path, self.speed, self.ground)
+        self.player = Player()
+        self.level = Level()
         self.player_group = pygame.sprite.GroupSingle(self.player)
+        self.obstacle_group = pygame.sprite.GroupSingle(self.level)
 
         self.running = True
 
@@ -65,6 +68,7 @@ class Core():
     def update(self, delta_time) -> None:
         pygame.display.update()
         self.player_group.update(delta_time)
+        self.level.update(delta_time)
 
 
     def render(self) -> None:
@@ -72,6 +76,7 @@ class Core():
         self.screen.blit(self.bg, (self.level_pos_start, 0))
         self.screen.blit(self.bg, (self.level_pos_end, 0))
         self.player_group.draw(self.screen)
+        self.obstacle_group.draw(self.screen)
 
     
     def bg_scroll(self) -> None:
