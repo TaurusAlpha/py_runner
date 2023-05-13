@@ -25,7 +25,8 @@ class Player(pygame.sprite.Sprite):
         self.running = True
         self.speed = speed
         self.ground = ground
-        self.gravity = -20
+        self.gravity = 0
+        self.air_time = 0
 
 
     def update(self, delta_time) -> None:
@@ -34,13 +35,15 @@ class Player(pygame.sprite.Sprite):
 
     def __animation_state(self, dt) -> None:
         if self.rect.bottom < self.ground:
-            self.gravity += 1
             if self.gravity < 0:
                 self.image = self.jump_up
-            elif self.gravity == 0:
+                self.gravity += 1
+            elif self.gravity == 0 and self.air_time > 0:
                 self.image = self.jump_air
+                self.air_time -= dt
             else:
                 self.image = self.jump_down
+                self.gravity += 1
             self.rect = self.rect.move(0, self.gravity)
         else:
             self.current_time += dt*self.speed
@@ -69,4 +72,5 @@ class Player(pygame.sprite.Sprite):
 
     def jump(self):
         self.gravity = -20
+        self.air_time = 20
         self.rect.bottom = self.ground-1
